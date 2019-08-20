@@ -1,4 +1,4 @@
 # cansleep-recruitment
 
-Production:    http://recruitment.cansleepstudy.com  
-Demonstration: http://recruitment.cansleepstudy.com?tb=demo  
+Production:    https://recruitment.cansleepstudy.com  
+Demonstration: https://recruitment.cansleepstudy.com?tb=demo  
