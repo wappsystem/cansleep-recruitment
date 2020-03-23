@@ -1,8 +1,10 @@
 //-------------------------------------
 var m=$vm.module_list['__MODULE__'];
+if(m.prefix==undefined) m.prefix="";
 m.query={};
 m.sort={_id:-1}
 m.projection={}
+if(m.title!=undefined) $('#title__ID').text(m.title);
 //-------------------------------------
 m.set_req=function(){
 };
@@ -19,31 +21,39 @@ m.request_data=function(){
     var mt1=new Date().getTime();
     var c_cmd="count";
     if(m.cmd_type=='s') c_cmd='count-s';
+    else if(m.cmd_type=='m') c_cmd='count-m';
+    else if(m.cmd_type=='d') c_cmd='count-d';
     else if(m.cmd_type=='p1') c_cmd='count-p1';
     else if(m.cmd_type=='p2') c_cmd='count-p2';
-    $vm.request({cmd:c_cmd,table:m.Table,query:m.query,search:$('#keyword__ID').val()},function(res){
+    else if(m.cmd_type=='table') c_cmd='count-table';
+    $vm.request({cmd:c_cmd,table:m.Table,query:m.query,I1:m.I1,search:$('#keyword__ID').val()},function(res){
         if(res.status=='np'){
             res.result=0;
         }
         var N=res.result;
-        m.max_I=N/limit-1;
         $("#B__ID").text(N)
+        
+        m.max_I=Math.ceil(N/limit)-1;
         var n2=skip+limit; if(n2>N) n2=N;
         var a=(skip+1).toString()+"~"+(n2).toString()+" of ";
         $("#A__ID").text(a);
     });
     var f_cmd="find";
     if(m.cmd_type=='s') f_cmd='find-s';
+    else if(m.cmd_type=='m') f_cmd='find-m';
+    else if(m.cmd_type=='d') f_cmd='find-d';
     else if(m.cmd_type=='p1') f_cmd='find-p1';
     else if(m.cmd_type=='p2') f_cmd='find-p2';
-    $vm.request({cmd:f_cmd,table:m.Table,query:m.query,sort:m.sort,projection:m.projection,search:$('#keyword__ID').val(),skip:skip,limit:limit},function(res){
+    else if(m.cmd_type=='table') f_cmd='find-table';
+    $vm.request({cmd:f_cmd,table:m.Table,I1:m.I1,query:m.query,sort:m.sort,projection:m.projection,search:$('#keyword__ID').val(),skip:skip,limit:limit},function(res){
         var mt2=new Date().getTime();
         var tt_all=mt2-mt1;
         var tt_server=parseInt(res.sys.elapsed_time);
         if(tt_all<tt_server) tt_all=tt_server;
         var db="<span style='color:#0919ec'>&#9679;</span> "; if(res.sys.db==1 || res.sys.db=='on') db="<span style='color:#0bbe0b'>&#9679;</span> ";
         var tb="<span style='color:red'>&#9679;</span> ";     if(res.sys.tb==1 || res.sys.tb=='on') tb="<span style='color:#0bbe0b'>&#9679;</span> ";
-        $("#elapsed__ID").html(db+tb+(JSON.stringify(res.result).length/1000).toFixed(1)+"kb/"+tt_all.toString()+"ms/"+tt_server+'ms');
+        //$("#elapsed__ID").html(db+tb+(JSON.stringify(res.result).length/1000).toFixed(1)+"kb/"+tt_all.toString()+"ms/"+tt_server+'ms');
+        $("#_sys_dev_info_elapsed").html(m.Table+" "+db+tb+(JSON.stringify(res.result).length/1000).toFixed(1)+"kb/"+tt_all.toString()+"ms/"+tt_server+'ms');
         
         if(res.status=='np' || res.result==undefined){
             res.result=[];
@@ -56,7 +66,7 @@ m.request_data=function(){
 
         m.records=res.result;
         m.res=res;
-        if(m.data_process!==undefined){ m.data_process(); }
+        if(m.data_process!==undefined){ m.data_process(res); }
         m.render();
         if(m.data_process_after_render!==undefined){ m.data_process_after_render('grid'); }
     })
@@ -69,9 +79,9 @@ m.render=function(){
         if(m.records[i].DateTime!==undefined){
             m.records[i].DateTime=m.records[i].DateTime.substring(0,10);
         }
-        if(m.records[i].vm_dirty===undefined) m.records[i].vm_dirty=0;
-        if(m.records[i].vm_custom===undefined) m.records[i].vm_custom={};
-        if(m.records[i].vm_readonly===undefined) m.records[i].vm_readonly={};
+        //if(m.records[i].vm_dirty===undefined) m.records[i].vm_dirty=0;
+        //if(m.records[i].vm_custom===undefined) m.records[i].vm_custom={};
+        //if(m.records[i].vm_readonly===undefined) m.records[i].vm_readonly={};
     }
 
     var txt="";
@@ -135,11 +145,12 @@ m.cell_process=function(){
             $(this).html("<u style='cursor:pointer'><i class='fa fa-pencil-square-o'></i></u>");
             $(this).find('u').on('click',function(){
                 m.form_I=row;
-                if($vm.module_list[m.form_module]===undefined){
+                var prefix=""; if(m.prefix!=undefined) prefix=m.prefix;
+                if($vm.module_list[prefix+m.form_module]===undefined){
                     alert('Can not find "'+m.form_module+'" in the module list');
                     return;
                 }
-                $vm.load_module(m.form_module,$vm.root_layout_content_slot,{record:m.records[I]});
+                $vm.load_module(prefix+m.form_module,$vm.root_layout_content_slot,{record:m.records[I]});
             })
         }
         //-------------------------
@@ -157,6 +168,7 @@ m.cell_process=function(){
         //-------------------------
         if(m.cell_render!==undefined){ m.cell_render(m.records,row,column_name,$(this)); }
         //-------------------------
+        /*
         if(column_name=='_Form' || column_name=='_Delete' || column_name=='DateTime' || column_name=='Author' || m.records[row].vm_readonly[column_name]===true){
             if($vm.edge==0) $(this).removeAttr('contenteditable');
             else if($vm.edge==1) $(this).find('div:first').removeAttr('contenteditable');
@@ -166,6 +178,7 @@ m.cell_process=function(){
             if($vm.edge==0) $(this).removeAttr('contenteditable');
             else if($vm.edge==1) $(this).find('div:first').removeAttr('contenteditable');
         }
+        */
     })
     //------------------------------------
 }
@@ -188,7 +201,9 @@ m.create_header=function(){
 }
 //-------------------------------------
 m.delete=function(rid){
-    $vm.request({cmd:"delete",id:rid,table:m.Table},function(res){
+    var d_cmd="delete";
+    if(m.cmd_type=='table') d_cmd='delete-table';
+    $vm.request({cmd:d_cmd,id:rid,table:m.Table},function(res){
         //-----------------------------
         if(res.status=="lk"){
             $vm.alert("This record is locked.");
@@ -211,7 +226,7 @@ m.delete=function(rid){
 };
 //-------------------------------
 m.export_records=function(){
-    var req={cmd:"export",table:m.Table,search:$('#keyword__ID').val()}
+    var req={cmd:"export",table:m.Table,query:m.query,I1:m.I1,search:$('#keyword__ID').val()}
     open_model__ID();
     $vm.request(req,function(N,i,txt){
         console.log(i+"/"+N);
@@ -249,25 +264,31 @@ m.handleFileSelect=function(evt){
                     var n1=lines[0].split('\t').length;
                     var n2=lines[0].split(',').length;
                     if(n2>n1) tab=',';
-                    var header=lines[0].replace(/ /g,'_').splitCSV(tab);
-                    var flds=fields.split(',');
+                    var flds=lines[0].replace(/ /g,'_').splitCSV(tab);
+                    //var import_fields=fields;
+                    //if(m.import_fields!=undefined) import_fields=m.import_fields;
+                    //var flds=header.split(',');
                     var fn=$('#Import_f__ID').val().substring($('#Import_f__ID').val().lastIndexOf('\\')+1);
                     if(confirm("Are you sure to import "+fn+"?\n")){
                         open_model__ID();
                         var I=0;
                         var i=1;
-                        var permission=1;
+                        var status="ok";
                         (function looper(){
-                            if( i<=lines.length && i<=NN && permission==1) {
+                            if( i<=lines.length && i<=NN && status=='ok') {
                                 var items=lines[i].splitCSV(tab);
                                 if(items.length>=1){
                                     var rd={};
                                     var dbv={};
                                     for(var j=0;j<flds.length;j++){
                                         var field_id=flds[j];
-                                        var index=header.indexOf(field_id);
+                                        var index=flds.indexOf(field_id);
                                         var index2=form_fields.indexOf(field_id);
-                                        if(index!=-1 && index2!=-1 && field_id.toUpperCase()!='ID')  rd[field_id]=items[index];
+                                        if(index!=-1 && index2!=-1)  rd[field_id]=items[index];
+                                        if(field_id=='UID' && j==0) rd['UID']=items[0];
+                                        if(field_id=='Submit_date' && j==1) rd['Submit_date']=items[1];
+                                        if(field_id=='Submitted_by' && j==2) rd['Submitted_by']=items[2];
+                                        if(field_id=='I1' && j==3) dbv['I1']=items[3];
                                     }
                                     if( jQuery.isEmptyObject(rd)===false){
                                         if(typeof(before_submit)!='undefined'){
@@ -275,8 +296,9 @@ m.handleFileSelect=function(evt){
                                         }
                                         jQuery.ajaxSetup({async:false});
                                         $vm.request({cmd:"insert",table:m.Table,data:rd,index:dbv,file:{}},function(res){
-                                            permission=res.status;
+                                            status=res.status;
                                         });
+                                        //console.log(rd)
                                         I++;
                                         jQuery.ajaxSetup({async:true});
                                     }
@@ -299,7 +321,8 @@ m.handleFileSelect=function(evt){
     }
 
     if($vm.module_list[m.form_module].id==undefined){
-        $vm.load_module(m.form_module,"hidden",{})
+        var prefix=""; if(m.prefix!=undefined) prefix=m.prefix;
+        $vm.load_module(prefix+m.form_module,"hidden",{})
     }
     var I=0;
     var loop__ID=setInterval(function (){
@@ -322,7 +345,7 @@ m.handleFileSelect=function(evt){
     //-------------------------------------
 }
 //-----------------------------------------------
-document.getElementById('Import_f__ID').addEventListener('change', m.handleFileSelect,false);
+if(document.getElementById('Import_f__ID')!=null) document.getElementById('Import_f__ID').addEventListener('change', m.handleFileSelect,false);
 //---------------------------------------------
 $('#search__ID').on('click',function(){   m.set_req(); m.request_data(); })
 $('#query__ID').on('click',function(){    m.set_req(); m.request_data(); })
@@ -337,7 +360,8 @@ $('#new__ID').on('click', function(){
         return;
     }
     if(m.form_module!=undefined){
-        $vm.load_module(m.form_module,'',{goback:1});
+        var prefix=""; if(m.prefix!=undefined) prefix=m.prefix;
+        $vm.load_module(prefix+m.form_module,'',{goback:1});
         return;
     }
     if(m.new_process!=undefined){
@@ -357,8 +381,25 @@ $('#new__ID').on('click', function(){
     }
     m.render(0);
 });
-$('#D__ID').on('load',function(){  m.input=$vm.vm['__ID'].input; if(m.preload==true) return; if(m.load!=undefined) m.load(); m.set_req(); m.request_data(); })
-$('#D__ID').on('show',function(){  if($vm.refresh==1){$vm.refresh=0; m.set_req(); m.request_data();} })
+$('#D__ID').on('load',function(){  /*m.input=$vm.vm['__ID'].input;*/ if(m.preload==true) return; if(m.load!=undefined) m.load(); m.set_req(); m.request_data(); })
+//$('#D__ID').on('show',function(){  if($vm.refresh==1){$vm.refresh=0; m.set_req(); m.request_data();} })
+$('#D__ID').on('show',function(){
+    if($vm.module_list[m.prefix+m.form_module]!=undefined){
+        var s=$vm.module_list[m.prefix+m.form_module].change_status;
+        if(m.change_status!=s){
+            m.change_status=s;
+            m.set_req(); 
+            m.request_data();
+        }
+    }
+    else if($vm.refresh==1){
+        $vm.refresh=0; 
+        m.set_req(); 
+        m.request_data();
+    }
+});
+//--------------------------------------------------------
+
 //-----------------------------------------------
 m.set_file_link=function(records,I,field,td){
     var filename=records[I].Data[field];
